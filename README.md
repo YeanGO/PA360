@@ -137,96 +137,48 @@ PA360/
 
 Python 3.9 以上
 
- 安裝與執行方式
+安裝與執行方式
 
-1 建立虛擬環境
-
-
-複製程式碼
-
-cd backend
-
-python -m venv .venv
-
-啟動虛擬環境（Windows）：
-
-
-
-bash
-
-複製程式碼
-
-.\\.venv\\Scripts\\activate
+1 虛擬環境設置
+進入專案資料夾
+cd /d C:\Users\你的用戶名\user\PA360\backend
+建立
+py -3.11 -m venv .venv
+啟動虛擬環境 
+.venv\Scripts\activate
+確認版本
+python --version
 
 2 安裝套件
-
-bash
-
-複製程式碼
 
 pip install -r requirements.txt
 
 3 啟動後端服務
 
-bash
-
-複製程式碼
-
+# 語法：uvicorn 路徑.檔名:變數名 --reload
 uvicorn app.main:app --reload
 
-API 位置：http://127.0.0.1:8000
-
-
+4 前端操作方式
 
 API 文件：http://127.0.0.1:8000/docs
+登 入 頁：http://127.0.0.1:8000/login.html
 
-
-
- 前端操作方式
-
-前端為靜態頁面，可透過任一 HTTP Server 開啟：
-
-
-
-登入頁：frontend/login.html
-
-
-
-學生功能：自評、同儕評分
-
-
-
+登入由 backend/app/data/user.csv 控制，可新增角色及登入密碼。
 教師功能：績效評分
-
-
-
+學生功能：自評、同儕評分
 管理者功能：績效總覽與分析
 
-
-
 注意事項
-
 本系統為教學與研究用途原型
-
-
-
 範例資料僅供示範，不涉及真實人事資料
-
-
-
 未包含正式資安與權限控管機制
 
 
-
 專案性質說明
-
 本專案屬於 課堂專題／研究型系統原型（Prototype），
-
 重點在於制度設計、系統架構與資料流程示範，而非商業系統。
 
 
-
 授權聲明
-
 本專案僅供學術研究與課堂教學使用。
 
