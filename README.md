@@ -141,7 +141,7 @@ Python 3.9 以上
 
 1 虛擬環境設置
 進入專案資料夾
-cd /d C:\Users\你的用戶名\user\PA360\backend
+cd PA360\backend
 建立
 py -3.11 -m venv .venv
 啟動虛擬環境 
