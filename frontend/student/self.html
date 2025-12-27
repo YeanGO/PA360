@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <title>自我評分</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/auth_guard.js"></script>
+  <script src="/assets/layout.js"></script>
+  <script>requireAuth(["student"]);</script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    renderLayout({ title: "自我評分（六指標 1–10）" });
+
+    const METRICS = ["工作態度","工作績效","紀律規範","專業能力","學習成長","溝通協作"];
+    const DRAFT_KEY = "draft_self_scores";
+
+    function buildForm(defaults) {
+      return `
+        <p class="muted">先做頁面與資料格式。送出後暫存到 localStorage（下一步才改成送後端）。</p>
+        <form id="selfForm">
+          ${METRICS.map(m => `
+            <label class="muted">${m}</label>
+            <div class="form-row">
+              <input type="range" min="1" max="10" value="${defaults?.[m] ?? 5}" data-metric="${m}">
+              <input type="number" min="1" max="10" value="${defaults?.[m] ?? 5}" data-metric-num="${m}">
+            </div>
+          `).join("")}
+
+          <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn primary" type="submit">暫存自評</button>
+            <button class="btn" type="button" id="clearBtn">清除暫存</button>
+          </div>
+
+          <pre id="preview" class="card" style="margin-top:12px; white-space:pre-wrap;"></pre>
+        </form>
+      `;
+    }
+
+    const defaults = (() => {
+      try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); }
+      catch { return null; }
+    })();
+
+    document.getElementById("page").innerHTML = buildForm(defaults);
+
+    const form = document.getElementById("selfForm");
+    const preview = document.getElementById("preview");
+
+    function syncRangeToNum(metric, v){
+      const num = form.querySelector(`[data-metric-num="${metric}"]`);
+      const rng = form.querySelector(`[data-metric="${metric}"]`);
+      if (num) num.value = v;
+      if (rng) rng.value = v;
+      renderPreview();
+    }
+
+    function collectScores(){
+      const scores = {};
+      METRICS.forEach(m => {
+        const num = form.querySelector(`[data-metric-num="${m}"]`);
+        const v = Math.max(1, Math.min(10, Number(num.value || 0)));
+        scores[m] = v;
+      });
+      return scores;
+    }
+
+    function renderPreview(){
+      const payload = {
+        role: localStorage.getItem("role"),
+        user_id: localStorage.getItem("user_id"),
+        type: "self",
+        scores: collectScores()
+      };
+      preview.textContent = JSON.stringify(payload, null, 2);
+    }
+
+    // range <-> number 雙向同步
+    METRICS.forEach(m => {
+      const rng = form.querySelector(`[data-metric="${m}"]`);
+      const num = form.querySelector(`[data-metric-num="${m}"]`);
+      rng.addEventListener("input", e => syncRangeToNum(m, e.target.value));
+      num.addEventListener("input", e => syncRangeToNum(m, e.target.value));
+    });
+
+    renderPreview();
+	
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+    
+      const tokenType = localStorage.getItem("token_type") || "bearer";
+      const token = localStorage.getItem("access_token");
+    
+      const scores = collectScores();
+      const payload = {
+        scores: {
+          hp: scores["工作態度"],
+          atk: scores["工作績效"],
+          def: scores["紀律規範"],
+          spa: scores["專業能力"],
+          spd: scores["學習成長"],
+          spe: scores["溝通協作"],
+        }
+      };
+    
+      const resp = await fetch("/api/scores/self", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `${tokenType} ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+    
+      if (!resp.ok) {
+        alert(`送出失敗（HTTP ${resp.status}）`);
+        return;
+      }
+    
+      alert("自評已送出並存入後端 app.db！");
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const scores = collectScores();
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(scores));
+      alert("已暫存自評（localStorage）！");
+      renderPreview();
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      localStorage.removeItem(DRAFT_KEY);
+      alert("已清除暫存！");
+      location.reload();
+    });
+  </script>
+</body>
+</html>

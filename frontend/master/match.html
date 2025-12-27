@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>績效指標分析</title>
+
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/auth_guard.js"></script>
+  <script src="/assets/layout.js"></script>
+  <script>requireAuth(["master"]);</script>
+
+  <style>
+    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+    .notice{ margin-top:10px; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background: rgba(255,255,255,.03); color: var(--muted); }
+    .notice.bad{ border-color: rgba(239,68,68,.45); color: rgba(239,68,68,.95); }
+    .results-grid{ display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top:12px; }
+
+    .match-layout{
+      display:grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap:16px;
+      align-items:start;
+    }
+    @media (max-width: 1100px){
+      .match-layout{ grid-template-columns: 1fr; }
+    }
+
+    .poke{ display:flex; gap:12px; align-items:center; }
+    .small{ font-size:12px; color: var(--muted); }
+    table{ width:100%; border-collapse: collapse; margin-top:10px; }
+    th, td{ padding:8px 8px; border-bottom:1px solid var(--border); text-align:left; }
+    th{ color: var(--muted); font-weight:700; font-size:13px; }
+
+    .poke-link{
+      color: inherit;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .poke-link:hover{ opacity: .85; }
+
+    .radar-wrap{
+      margin-top:10px;
+      padding:12px;
+      border-radius:14px;
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,.12);
+    }
+    .radar-canvas{
+      width:100%;
+      height:320px;
+      display:block;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script>
+    renderLayout({ title: "趣味分析" });
+
+    const page = document.getElementById("page");
+    const tokenType = (localStorage.getItem("token_type") || "bearer");
+    const token = localStorage.getItem("access_token");
+
+    async function apiGet(url){
+      const resp = await fetch(url, { headers: { "Authorization": `${tokenType} ${token}` } });
+      return resp;
+    }
+
+    async function loadStudents(){
+      const resp = await apiGet("/api/master/summary");
+      if (!resp.ok) throw new Error("summary");
+      const data = await resp.json();
+      return (data.detail || []).map(x => x.user_id);
+    }
+
+    function esc(s){ return String(s).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+
+    let radarChart = null;
+
+    const whiteBgPlugin = {
+      id: "whiteBgPlugin",
+      beforeDraw(chart){
+        const { ctx, chartArea } = chart;
+        if (!chartArea) return;
+        ctx.save();
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+        ctx.restore();
+      }
+    };
+
+    function toNum(v){
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function renderRadar(base){
+      const labels = ["工作態度","工作績效","紀律規範","專業能力","學習成長","溝通協作"];
+      const values = [
+        toNum(base.hp),
+        toNum(base.atk),
+        toNum(base.def),
+        toNum(base.spa),
+        toNum(base.spd),
+        toNum(base.spe),
+      ];
+
+      const el = document.getElementById("radar");
+      if (!el) return;
+
+      if (radarChart){
+        radarChart.destroy();
+        radarChart = null;
+      }
+
+      radarChart = new Chart(el, {
+        type: "radar",
+        data: {
+          labels,
+          datasets: [{
+            label: "加權六指標",
+            data: values,
+            borderWidth: 2,
+            pointRadius: 3,
+            backgroundColor: "rgba(59,130,246,.15)",
+            borderColor: "rgba(59,130,246,.9)",
+            pointBackgroundColor: "rgba(59,130,246,.9)"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            r: {
+              min: 0,
+              max: 10,
+              ticks: { stepSize: 2, showLabelBackdrop: false },
+              grid: { circular: false, color: "rgba(0,0,0,.15)" },
+              angleLines: { color: "rgba(0,0,0,.15)" },
+              pointLabels: { color: "rgba(0,0,0,.70)", font: { size: 14, weight: "600" } }
+            }
+          }
+        },
+        plugins: [whiteBgPlugin]
+      });
+    }
+
+    function renderBase(students){
+      page.innerHTML = `
+        <p class="muted">選擇學生後，系統會用「加權六指標（40/20/40）」去比對 csv 檔案，回傳 Top-K 趣味比對（依據各項能力值顯示官方連結）。
+          比對方式為：工作態度/體力、
+          工作績效/攻擊、
+          紀律規範/防禦、
+          專業能力/特攻、
+          學習成長/特防、
+          溝通協作/速度。
+        </p>
+
+        <div class="toolbar">
+          <div style="min-width:220px; flex:1 1 220px;">
+            <label class="muted">選擇學生</label>
+            <select id="student">
+              ${students.map(s => `<option value="${s}">${esc(s)}</option>`).join("")}
+            </select>
+          </div>
+
+          <div>
+            <label class="muted">Top-K</label>
+            <input id="topk" type="number" min="1" max="10" value="3" />
+          </div>
+
+          <div>
+            <label class="muted">距離</label>
+            <select id="method">
+              <option value="euclidean">歐式距離</option>
+              <!--
+              <option value="manhattan">曼哈頓距離</option>
+              -->
+            </select>
+          </div>
+
+          <div>
+            <button class="btn primary" id="goBtn" type="button">開始比對</button>
+          </div>
+        </div>
+
+        <div id="out" style="margin-top:12px;"></div>
+      `;
+
+      document.getElementById("goBtn").addEventListener("click", runMatch);
+      runMatch(); // 預設先跑一次
+    }
+
+    async function runMatch(){
+      const sid = document.getElementById("student").value;
+      const topk = document.getElementById("topk").value || 3;
+      const method = document.getElementById("method").value;
+
+      const out = document.getElementById("out");
+      out.innerHTML = `<p class="muted">比對中...</p>`;
+
+      const resp = await apiGet(`/api/master/match?student_id=${encodeURIComponent(sid)}&top_k=${encodeURIComponent(topk)}&method=${encodeURIComponent(method)}`);
+      if (!resp.ok){
+        out.innerHTML = `<div class="notice bad">載入失敗（HTTP ${resp.status}）</div>`;
+        return;
+      }
+
+      const data = await resp.json();
+      if (!data.complete){
+        out.innerHTML = `
+          <div class="notice bad">
+            這位學生目前資料不齊（老師/自評/同儕需全部具備）所以暫時無法比對。<br>
+            <span class="small">提示：先讓學生完成同儕評分，並讓老師與學生完成評分。</span>
+          </div>
+        `;
+        return;
+      }
+
+      const base = data.weighted || {};
+      const baseTable = `
+        <div class="card">
+          <div class="h2">加權六指標</div>
+          <table>
+            <thead><tr><th>工作態度</th><th>工作績效</th><th>紀律規範</th><th>專業能力</th><th>學習成長</th><th>溝通協作</th></tr></thead>
+            <tbody><tr>
+              <td>${base.hp ?? ""}</td><td>${base.atk ?? ""}</td><td>${base.def ?? ""}</td>
+              <td>${base.spa ?? ""}</td><td>${base.spd ?? ""}</td><td>${base.spe ?? ""}</td>
+            </tr></tbody>
+          </table>
+
+          <div class="radar-wrap">
+            <canvas id="radar" class="radar-canvas"></canvas>
+          </div>
+
+          <div class="small" style="margin-top:8px;">距離方法：${esc(data.method)}｜Top-K：${data.top_k}</div>
+        </div>
+      `;
+
+      const cards = (data.results || []).map((r, idx) => `
+        <div class="card">
+          <div class="poke">
+            <div>
+              <div style="font-weight:800;">
+                Top ${idx+1}：
+                <a class="poke-link" href="${esc(r.official_url)}" target="_blank" rel="noopener noreferrer">
+                  ${esc(r.poke_name)} (#${r.poke_num})
+                </a>
+              </div>
+              <div class="small">distance：${r.distance}</div>
+            </div>
+          </div>
+        </div>
+      `).join("");
+
+      out.innerHTML = `
+        <div class="match-layout">
+          <div>
+            ${baseTable}
+          </div>
+          <div class="results-grid">
+            ${cards}
+          </div>
+        </div>
+      `;
+      renderRadar(base);
+    }
+
+    (async function main(){
+      try{
+        const students = await loadStudents();
+        if (!students.length){
+          page.innerHTML = `<div class="notice bad">找不到學生名單（peer_assignments.csv 可能為空）。</div>`;
+          return;
+        }
+        renderBase(students);
+      }catch(e){
+        console.error(e);
+        page.innerHTML = `<div class="notice bad">載入失敗：請確認 /api/master/summary 可正常回應。</div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Virtual env
+.venv/
+venv/
+ENV/
+env/
+backend/.venv/
+
+# Local settings / secrets
+.env
+.env.*
+*.secrets.*
+secrets.toml
+
+# DB / local data (依你的專案調整)
+*.db
+*.sqlite
+*.sqlite3
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log

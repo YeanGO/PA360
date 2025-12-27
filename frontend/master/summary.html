@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>加權總分</title>
+
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/auth_guard.js"></script>
+  <script src="/assets/layout.js"></script>
+  <script>requireAuth(["master"]);</script>
+
+  <style>
+    table{ width:100%; border-collapse: collapse; }
+    th, td{ padding:10px 8px; border-bottom:1px solid var(--border); text-align:left; }
+    th{ color: var(--muted); font-weight:700; font-size:13px; }
+    .tag{
+      display:inline-block; padding:3px 8px; border-radius:999px;
+      border:1px solid var(--border); font-size:12px; color: var(--muted);
+      background: rgba(255,255,255,.03);
+    }
+    .tag.ok{ border-color: rgba(34,197,94,.35); color: rgba(34,197,94,.92); }
+    .tag.bad{ border-color: rgba(239,68,68,.45); color: rgba(239,68,68,.95); }
+    .mini{ font-size:12px; color: var(--muted); }
+    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script>
+    renderLayout({ title: "加權總分" });
+
+    const tokenType = (localStorage.getItem("token_type") || "bearer");
+    const token = localStorage.getItem("access_token");
+    const page = document.getElementById("page");
+
+    const METRICS = ["hp","atk","def","spa","spd","spe"];
+    const METRICS_ZH = { hp:"工作態度", atk:"工作績效", def:"紀律規範", spa:"專業能力", spd:"學習成長", spe:"溝通協作" };
+
+    function tag(ok, t="完成", f="未完成"){
+      return ok ? `<span class="tag ok">${t}</span>` : `<span class="tag bad">${f}</span>`;
+    }
+    function esc(s){ return String(s).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+
+    async function load(){
+      page.innerHTML = `<p class="muted">載入中...</p>`;
+
+      const resp = await fetch("/api/master/summary", {
+        headers: { "Authorization": `${tokenType} ${token}` }
+      });
+
+      if (!resp.ok){
+        page.innerHTML = `<p class="muted">載入失敗（HTTP ${resp.status}）</p>`;
+        return;
+      }
+
+      const data = await resp.json();
+      const w = data.weights;
+
+      const summaryHtml = `
+        <div class="toolbar">
+          <button class="btn" id="reloadBtn">重新整理</button>
+          <span class="mini">權重：老師 ${w.teacher*100}%｜自評 ${w.self*100}%｜同儕 ${w.peer*100}%</span>
+        </div>
+        <div style="margin-top:10px;">
+          <span class="tag">班級人數：${data.class_size}</span>
+          <span class="tag ${data.complete_count===data.class_size?'ok':'bad'}">可計算人數：${data.complete_count}/${data.class_size}</span>
+        </div>
+      `;
+
+      const rows = (data.detail || []).map(x => {
+        const mean = (x.weighted_mean ?? "");
+        const weighted = x.weighted || {};
+        return `
+          <tr>
+            <td>${esc(x.user_id)}</td>
+            <td>${tag(x.complete)}</td>
+            <td>${x.has_teacher ? tag(true,"有","無") : tag(false,"有","無")}</td>
+            <td>${x.has_self ? tag(true,"有","無") : tag(false,"有","無")}</td>
+            <td>${x.has_peer ? `<span class="tag ok">有(${x.peer_received_count})</span>` : `<span class="tag bad">無(0)</span>`}</td>
+            <td>${mean}</td>
+            ${METRICS.map(m => `<td>${weighted[m] ?? ""}</td>`).join("")}
+          </tr>
+        `;
+      }).join("");
+
+      page.innerHTML = `
+        ${summaryHtml}
+        <div class="card" style="margin-top:12px;">
+          <div class="h2">加權六指標（可計算者才會顯示數值）</div>
+          <table>
+            <thead>
+              <tr>
+                <th>學生</th>
+                <th>可計算</th>
+                <th>老師</th>
+                <th>自評</th>
+                <th>同儕</th>
+                <th>平均</th>
+                ${METRICS.map(m => `<th>${METRICS_ZH[m]}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+
+      document.getElementById("reloadBtn").addEventListener("click", load);
+    }
+
+    load().catch(err => {
+      console.error(err);
+      page.innerHTML = `<p class="muted">載入發生錯誤，請看 Console。</p>`;
+    });
+  </script>
+</body>
+</html>

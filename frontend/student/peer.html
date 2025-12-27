@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>同儕評分</title>
+
+  <!-- 全站樣式 -->
+  <link rel="stylesheet" href="/assets/styles.css">
+
+  <!-- 登入守門 & 共用 Layout -->
+  <script src="/assets/auth_guard.js"></script>
+  <script src="/assets/layout.js"></script>
+
+  <!-- 只允許 student -->
+  <script>
+    requireAuth(["student"]);
+  </script>
+
+  <style>
+    /* 這頁專用的小樣式（不影響其他頁） */
+    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .toolbar > *{ flex:0 0 auto; }
+    .notice{ margin-top:10px; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background: rgba(255,255,255,.03); color: var(--muted); }
+    .notice.error{ border-color: rgba(239,68,68,.45); color: rgba(239,68,68,.95); }
+    .notice.ok{ border-color: rgba(34,197,94,.35); color: rgba(34,197,94,.92); }
+    .metrics{ margin-top:12px; }
+    .actions{ margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; }
+    .small{ font-size:12px; color: var(--muted); }
+    .divider{ height:1px; background: var(--border); margin:14px 0; }
+    .loading{ opacity: .85; }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script>
+    // ====== Step 6: Peer page full version ======
+    renderLayout({ title: "同儕評分（每人 2 位）" });
+
+    const METRICS = [
+      { zh: "工作態度", key: "hp"  },
+      { zh: "工作績效", key: "atk" },
+      { zh: "紀律規範", key: "def" },
+      { zh: "專業能力", key: "spa" },
+      { zh: "學習成長", key: "spd" },
+      { zh: "溝通協作", key: "spe" },
+    ];
+
+
+    const tokenType = (localStorage.getItem("token_type") || "bearer").toLowerCase();
+    const token = localStorage.getItem("access_token");
+
+    const pageEl = document.getElementById("page");
+
+    function notice(msg, type="") {
+      // type: "", "error", "ok"
+      return `<div class="notice ${type}">${msg}</div>`;
+    }
+
+    function setLoading(isLoading) {
+      if (isLoading) {
+        pageEl.classList.add("loading");
+      } else {
+        pageEl.classList.remove("loading");
+      }
+      const btn = document.getElementById("submitBtn");
+      const reloadBtn = document.getElementById("reloadBtn");
+      const targetSel = document.getElementById("target");
+      if (btn) btn.disabled = isLoading;
+      if (reloadBtn) reloadBtn.disabled = isLoading;
+      if (targetSel) targetSel.disabled = isLoading;
+      // inputs
+      METRICS.forEach(m => {
+        const r = document.querySelector(`[data-range="${m.key}"]`);
+        const n = document.querySelector(`[data-num="${m.key}"]`);
+        if (r) r.disabled = isLoading;
+        if (n) n.disabled = isLoading;
+      });
+    }
+
+    async function apiGet(url) {
+      const resp = await fetch(url, {
+        headers: { "Authorization": `${tokenType} ${token}` }
+      });
+      return resp;
+    }
+
+    async function apiPost(url, payload) {
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `${tokenType} ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      return resp;
+    }
+
+    function buildMetricsHtml(defaultValue=5) {
+      return METRICS.map(m => `
+        <label class="muted">${m.zh}</label>
+        <div class="form-row">
+          <input type="range" min="1" max="10" value="${defaultValue}" data-range="${m.key}">
+          <input type="number" min="1" max="10" value="${defaultValue}" data-num="${m.key}">
+        </div>
+      `).join("");
+    }
+
+    function collectScores() {
+      const scores = {};
+      METRICS.forEach(m => {
+        const n = document.querySelector(`[data-num="${m.key}"]`);
+        const v = Math.max(1, Math.min(10, Number(n?.value || 0)));
+        scores[m.key] = v;
+      });
+      return scores;
+    }
+
+    function bindSync() {
+      METRICS.forEach(m => {
+        const r = document.querySelector(`[data-range="${m.key}"]`);
+        const n = document.querySelector(`[data-num="${m.key}"]`);
+        if (!r || !n) return;
+
+        r.addEventListener("input", e => {
+          n.value = e.target.value;
+          renderPreview();
+        });
+        n.addEventListener("input", e => {
+          // 手動輸入時防呆（1~10）
+          const v = Math.max(1, Math.min(10, Number(e.target.value || 0)));
+          e.target.value = v;
+          r.value = v;
+          renderPreview();
+        });
+      });
+    }
+
+    function renderPreview() {
+      const target = document.getElementById("target")?.value || "";
+      const payload = {
+        target_user_id: target,
+        scores: collectScores()
+      };
+      const pre = document.getElementById("preview");
+      if (pre) pre.textContent = JSON.stringify(payload, null, 2);
+    }
+
+    function buildPage(peers, messageHtml="") {
+      pageEl.innerHTML = `
+        <p class="muted">
+          這頁會先從後端抓你被分派要評分的同學名單（固定 2 位，可擴充），選一位後填六指標 1–10 並送出。
+        </p>
+
+        ${messageHtml}
+
+        <div class="divider"></div>
+
+        <div class="toolbar">
+          <div style="min-width:220px; flex: 1 1 220px;">
+            <label class="muted">選擇要評分的同學</label>
+            <select id="target">
+              ${peers.map(p => `<option value="${p}">${p}</option>`).join("")}
+            </select>
+          </div>
+
+          <div style="margin-top:22px;">
+            <button class="btn" id="reloadBtn" type="button">重新載入名單</button>
+          </div>
+        </div>
+
+        <div class="metrics">
+          <form id="peerForm">
+            ${buildMetricsHtml(5)}
+
+            <div class="actions">
+              <button class="btn primary" id="submitBtn" type="submit">送出同儕評分</button>
+              <button class="btn" id="resetBtn" type="button">重設為 5</button>
+            </div>
+
+            <div class="small" style="margin-top:10px;">
+              送出後資料會存入後端 app.db（scores_peer 表）。
+            </div>
+
+            <pre id="preview" class="card" style="margin-top:12px; white-space:pre-wrap;"></pre>
+          </form>
+        </div>
+      `;
+
+      // 綁定事件
+      document.getElementById("reloadBtn").addEventListener("click", () => main());
+      document.getElementById("resetBtn").addEventListener("click", () => {
+        METRICS.forEach(m => {
+          const r = document.querySelector(`[data-range="${m.key}"]`);
+          const n = document.querySelector(`[data-num="${m.key}"]`);
+          if (r) r.value = 5;
+          if (n) n.value = 5;
+        });
+        renderPreview();
+      });
+
+      // 目標切換就更新 preview
+      document.getElementById("target").addEventListener("change", renderPreview);
+
+      bindSync();
+      renderPreview();
+
+      // 送出
+      document.getElementById("peerForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        setLoading(true);
+
+        const target = document.getElementById("target").value;
+        const payload = {
+          target_user_id: target,
+          scores: collectScores()
+        };
+
+        try {
+          const resp = await apiPost("/api/scores/peer", payload);
+
+          if (!resp.ok) {
+            let msg = `送出失敗（HTTP ${resp.status}）`;
+            try {
+              const err = await resp.json();
+              const code = err?.detail?.error || "";
+              if (code === "FORBIDDEN") msg = "你沒有權限送出同儕評分（角色錯誤）。";
+              if (code === "MISSING_TOKEN" || code === "INVALID_TOKEN") msg = "登入已失效，請重新登入。";
+            } catch (_) {}
+            buildPage(peers, notice(msg, "error"));
+            setLoading(false);
+            return;
+          }
+
+          buildPage(peers, notice(`已送出對 <b>${target}</b> 的同儕評分（已存入 app.db）`, "ok"));
+          setLoading(false);
+
+        } catch (err) {
+          buildPage(peers, notice("無法連線到伺服器，請確認 FastAPI 已啟動。", "error"));
+          setLoading(false);
+          console.error(err);
+        }
+      });
+    }
+
+    async function main() {
+      setLoading(true);
+
+      // 沒 token 就直接回登入
+      if (!token) {
+        window.location.href = "/login.html";
+        return;
+      }
+
+      try {
+        const resp = await apiGet("/api/assignments/peers");
+
+        if (!resp.ok) {
+          let msg = `載入分派名單失敗（HTTP ${resp.status}）`;
+          try {
+            const err = await resp.json();
+            const code = err?.detail?.error || err?.error || "";
+            if (code === "USER_NOT_IN_ROSTER") msg = "peer_assignments.csv 沒有分派";
+            if (code === "MISSING_TOKEN" || code === "INVALID_TOKEN") msg = "登入已失效，請重新登入。";
+            if (code === "FORBIDDEN") msg = "你沒有權限查看同儕分派（角色錯誤）。";
+          } catch (_) {}
+          pageEl.innerHTML = notice(msg, "error");
+          setLoading(false);
+          return;
+        }
+
+        const peers = await resp.json();
+
+        if (!Array.isArray(peers) || peers.length === 0) {
+          pageEl.innerHTML = notice("後端沒有回傳任何分派名單，請確認 peer_assignments.csv 有足夠學生。", "error");
+          setLoading(false);
+          return;
+        }
+
+        buildPage(peers);
+        setLoading(false);
+
+      } catch (err) {
+        pageEl.innerHTML = notice("無法連線到伺服器，請確認 FastAPI 已啟動。", "error");
+        setLoading(false);
+        console.error(err);
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>

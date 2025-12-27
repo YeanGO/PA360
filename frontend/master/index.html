@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <title>HR</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/auth_guard.js"></script>
+  <script src="/assets/layout.js"></script>
+  <script>requireAuth(["master"]);</script>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    renderLayout({ title: "績效考評總覽" });
+    document.getElementById("page").innerHTML = `
+<div class="intro-box">
+  <p class="intro-text">
+    本系統整合
+    <span class="highlight">教師評分</span>、
+    <span class="highlight">自我評估</span> 與
+    <span class="highlight">同儕回饋</span>，
+    將六項能力數值進行加權分析與視覺化呈現。
+  </p>
+
+  <div class="intro-features">
+    <div class="feature-title">系統功能</div>
+    <ul>
+      <li>加權總分計算</li>
+      <li>各項指標說明</li>
+      <li>個人能力雷達圖</li>
+      <li>趣味分析</li>
+    </ul>
+  </div>
+
+  <p class="intro-footer">
+    讓抽象的評價，轉化為
+    <span class="highlight-soft">具體、可比較的能力指標</span>。
+  </p>
+</div>
+
+    `;
+  </script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>老師首頁</title>
+
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/auth_guard.js"></script>
+  <script src="/assets/layout.js"></script>
+  <script>requireAuth(["teacher"]);</script>
+
+  <style>
+    table{ width:100%; border-collapse: collapse; }
+    th, td{ padding:10px 8px; border-bottom:1px solid var(--border); text-align:left; }
+    th{ color: var(--muted); font-weight:700; font-size:13px; }
+    .tag{
+      display:inline-block; padding:3px 8px; border-radius:999px;
+      border:1px solid var(--border); font-size:12px; color: var(--muted);
+      background: rgba(255,255,255,.03);
+    }
+    .tag.ok{ border-color: rgba(34,197,94,.35); color: rgba(34,197,94,.92); }
+    .tag.bad{ border-color: rgba(239,68,68,.45); color: rgba(239,68,68,.95); }
+    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .summary{ display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 0; }
+    .mini{ font-size:12px; color: var(--muted); }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script>
+    renderLayout({ title: "老師｜全班完成度" });
+
+    const tokenType = (localStorage.getItem("token_type") || "bearer");
+    const token = localStorage.getItem("access_token");
+    const page = document.getElementById("page");
+
+    function tag(ok, textOk="完成", textBad="未完成"){
+      return ok
+        ? `<span class="tag ok">${textOk}</span>`
+        : `<span class="tag bad">${textBad}</span>`;
+    }
+
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, m => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+      }[m]));
+    }
+
+    async function load(){
+      page.innerHTML = `<p class="muted">載入中...</p>`;
+
+      const resp = await fetch("/api/teacher/completion", {
+        headers: { "Authorization": `${tokenType} ${token}` }
+      });
+
+      if (!resp.ok){
+        page.innerHTML = `<p class="muted">載入失敗（HTTP ${resp.status}）</p>`;
+        return;
+      }
+
+      const data = await resp.json();
+
+      const classSize = data.class_size;
+      const reqPeerGiven = data.required_peer_given;
+
+      const notSelf = data.not_submitted_self || [];
+      const notPeerGiven = data.not_done_peer_given || [];
+      const notTeacher = data.not_done_teacher || [];
+
+      const doneSelfCount = classSize - notSelf.length;
+      const donePeerGivenCount = classSize - notPeerGiven.length;
+      const doneTeacherCount = classSize - notTeacher.length;
+
+      const summaryHtml = `
+        <div class="toolbar">
+          <button class="btn" id="reloadBtn">重新整理</button>
+          <span class="mini">要求：每人同儕送出 ${reqPeerGiven} 份</span>
+        </div>
+
+        <div class="summary">
+          <span class="tag">班級人數：${classSize}</span>
+          <span class="tag ${doneSelfCount===classSize?'ok':''}">自評已交：${doneSelfCount}/${classSize}</span>
+          <span class="tag ${donePeerGivenCount===classSize?'ok':''}">同儕送出達標：${donePeerGivenCount}/${classSize}</span>
+          <span class="tag ${notSelf.length===0?'ok':'bad'}">未交自評：${notSelf.length}</span>
+          <span class="tag ${notPeerGiven.length===0?'ok':'bad'}">同儕未達標：${notPeerGiven.length}</span>
+          <span class="tag ${doneTeacherCount===classSize?'ok':''}">老師評分完成：${doneTeacherCount}/${classSize}</span>
+          <span class="tag ${notTeacher.length===0?'ok':'bad'}">老師評分未完成：${notTeacher.length}</span>
+        </div>
+
+        <div style="margin-top:10px;">
+          <div class="mini">未交自評：${notSelf.length ? notSelf.map(escapeHtml).join(", ") : "（無）"}</div>
+          <div class="mini">同儕未達標：${notPeerGiven.length ? notPeerGiven.map(escapeHtml).join(", ") : "（無）"}</div>
+          <div class="mini">老師評分未完成：${notTeacher.length ? notTeacher.map(escapeHtml).join(", ") : "（無）"}</div>
+        </div>
+      `;
+
+      const rows = (data.detail || []).map(x => `
+        <tr>
+          <td>${escapeHtml(x.user_id)}</td>
+          <td>${tag(x.self_submitted, "已交", "未交")}</td>
+          <td>
+            ${x.peer_given_count} / ${x.required_peer_given}
+            ${tag(x.peer_given_done, "達標", "未達標")}
+          </td>
+          <td>
+            ${x.peer_received_count} / ${x.required_peer_received}
+            ${tag(x.peer_received_done, "已收齊", "未收齊")}
+          </td>
+          <td>${tag(x.teacher_done, "已評", "未評")}</td>
+          <td>${tag(x.all_done, "完成", "未完成")}</td>
+        </tr>
+      `).join("");
+
+      page.innerHTML = `
+        ${summaryHtml}
+        <div class="card" style="margin-top:12px;">
+          <div class="h2">完成度明細</div>
+          <table>
+            <thead>
+              <tr>
+                <th>學生 ID</th>
+                <th>自評</th>
+                <th>同儕送出</th>
+                <th>同儕收到</th>
+                <th>老師評分</th>
+                <th>（自評+送出）是否完成</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+
+      document.getElementById("reloadBtn").addEventListener("click", load);
+    }
+
+    load().catch(err => {
+      console.error(err);
+      page.innerHTML = `<p class="muted">載入發生錯誤，請看 Console。</p>`;
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>360度績效互評系統｜登入</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --card:#121a33;
+      --muted:#9aa7c7;
+      --text:#eef2ff;
+      --primary:#7c3aed;
+      --border:rgba(255,255,255,.12);
+      --danger:#ef4444;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      background: radial-gradient(1200px 600px at 20% 10%, rgba(124,58,237,.25), transparent 60%),
+                  radial-gradient(900px 600px at 80% 90%, rgba(59,130,246,.18), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans TC", Arial, sans-serif;
+    }
+    .wrap{ width:min(920px, 100%); display:grid; grid-template-columns: 1.1fr .9fr; gap:18px; }
+    @media (max-width: 860px){ .wrap{ grid-template-columns:1fr; } }
+
+    .hero{
+      padding:22px;
+      border:1px solid var(--border);
+      border-radius:18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    }
+    .hero h1{ margin:0 0 10px; font-size:28px; letter-spacing:.5px; }
+    .hero p{ margin:0; color:var(--muted); line-height:1.7; }
+    .pillrow{ margin-top:14px; display:flex; flex-wrap:wrap; gap:10px; }
+    .pill{
+      border:1px solid var(--border);
+      padding:8px 10px;
+      border-radius:999px;
+      color:var(--muted);
+      font-size:13px;
+      background: rgba(255,255,255,.03);
+    }
+
+    .card{
+      padding:22px;
+      border:1px solid var(--border);
+      border-radius:18px;
+      background: rgba(18,26,51,.72);
+      backdrop-filter: blur(8px);
+    }
+    .card h2{ margin:0 0 14px; font-size:18px; }
+    label{ display:block; font-size:13px; color:var(--muted); margin:12px 0 6px; }
+    input, select{
+      width:100%;
+      padding:11px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      outline:none;
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      font-size:14px;
+    }
+    input::placeholder{ color: rgba(154,167,199,.7); }
+
+    .row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    @media (max-width: 480px){ .row{ grid-template-columns:1fr; } }
+
+    .btn{
+      margin-top:14px;
+      width:100%;
+      padding:12px 14px;
+      border-radius:12px;
+      border:1px solid rgba(124,58,237,.55);
+      background: linear-gradient(180deg, rgba(124,58,237,.9), rgba(124,58,237,.7));
+      color:white;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .btn:active{ transform: translateY(1px); }
+    .hint{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.6;
+    }
+
+    .toast{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      font-size:13px;
+      color:var(--muted);
+      display:none;
+    }
+    .toast.error{
+      border-color: rgba(239,68,68,.45);
+      color: rgba(239,68,68,.95);
+    }
+  </style>
+</head>
+
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>360度績效互評系統</h1>
+      <p>
+        透過 <b>老師評分 / 自我評分 / 同儕評分</b>，取得六維能力平均分數（1–10），並在「HR」頁面呈現雷達圖等分析資料。
+      </p>
+      <div class="pillrow">
+        <div class="pill">六指標：工作績效/專業能力/工作態度/溝通協作/學習成長/紀律規範</div>
+        <div class="pill">角色：Teacher / Student / HR</div>
+        <div class="pill">同儕評分：每人評 2 位（可擴充）</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>登入</h2>
+
+      <form id="loginForm" autocomplete="on">
+        <label for="role">角色</label>
+        <select id="role" name="role" required>
+          <option value="" selected disabled>請選擇角色</option>
+          <option value="teacher">老師（Teacher）</option>
+          <option value="student">學生（Student）</option>
+          <option value="master">HR</option>
+        </select>
+
+        <div class="row">
+          <div>
+            <label for="userId">帳號（ID）</label>
+            <input id="userId" name="userId" placeholder="請輸入帳號" required />
+          </div>
+          <div>
+            <label for="password">密碼</label>
+            <input id="password" name="password" type="password" placeholder="請輸入密碼" required />
+          </div>
+        </div>
+
+        <button class="btn" type="submit">登入</button>
+
+        <div id="toast" class="toast"></div>
+        <div class="hint">
+          請依角色登入後填答。
+        </div>
+      </form>
+    </section>
+  </main>
+
+<script>
+  const form = document.getElementById("loginForm");
+  const toast = document.getElementById("toast");
+
+  function showToast(msg, isError=false){
+    toast.className = isError ? "toast error" : "toast";
+    toast.textContent = msg;
+    toast.style.display = "block";
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    toast.style.display = "none";
+
+    const role = document.getElementById("role").value;
+    const userId = document.getElementById("userId").value.trim();
+    const password = document.getElementById("password").value;
+
+    if (!role || !userId || !password) {
+      showToast("請完整選擇角色並輸入帳號與密碼。", true);
+      return;
+    }
+
+    try {
+      // 同一個網域/埠：因為前端就是 FastAPI 掛的，所以直接用相對路徑
+      const resp = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: role,
+          user_id: userId,
+          password: password
+        })
+      });
+
+      // 失敗（401）
+      if (!resp.ok) {
+        let errText = `登入失敗（HTTP ${resp.status}）`;
+        try {
+          const err = await resp.json();
+          // FastAPI HTTPException detail 會在 err.detail
+          if (err?.detail?.error === "INVALID_CREDENTIALS") {
+            errText = "帳號或密碼錯誤，請再試一次。";
+          }
+        } catch (_) {}
+        showToast(errText, true);
+        return;
+      }
+
+      // 成功（200）
+      const data = await resp.json();
+
+      // 存 token / 身分資訊（後面呼叫評分 API 會用）
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("token_type", data.token_type);
+      localStorage.setItem("role", data.role);
+      localStorage.setItem("user_id", data.user_id);
+      localStorage.setItem("display_name", data.display_name ?? "");
+
+      showToast(`登入成功：${data.display_name ?? data.user_id}，即將導向...`);
+
+      // 導頁（由後端決定 next_path）
+      window.location.href = data.next_path;
+
+    } catch (err) {
+      showToast("無法連線到伺服器，請確認 FastAPI 是否已啟動。", true);
+      console.error(err);
+    }
+  });
+</script>
+
+</body>
+</html>

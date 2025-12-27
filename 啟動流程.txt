@@ -1,0 +1,38 @@
+虛擬環境設置
+
+進入專案資料夾
+cd /d C:\Users\你的用戶名\user\PA360\backend
+建立
+py -3.11 -m venv .venv
+進入 
+.venv\Scripts\activate
+確認版本
+python --version
+==========================================================
+安裝套件
+pip install -r requirements.txt
+==========================================================
+安裝後的檢查清單
+安裝完成後，你可以透過以下兩個動作來確認環境是否設定正確：
+
+查看已安裝清單： 
+輸入 pip list，你應該能看到 fastapi 和 uvicorn 出現在列表裡。
+建立 requirements.txt（專業習慣）： 
+在碩士專案中，良好的習慣是紀錄你用了哪些套件。
+
+輸入以下指令：
+pip freeze > requirements.txt
+這會產生一個文字檔(使用的套件)
+==========================================================
+啟動流程
+
+cd PA360/backend
+
+# 語法：uvicorn 路徑.檔名:變數名 --reload
+uvicorn app.main:app --reload
+
+http://127.0.0.1:8000/docs
+
+http://127.0.0.1:8000/health
+
+http://127.0.0.1:8000/login.html

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <title>各項指標分析</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/auth_guard.js"></script>
+  <script src="/assets/layout.js"></script>
+  <script>requireAuth(["master"]);</script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    renderLayout({ title: "各項指標說明" });
+
+    document.getElementById("page").innerHTML = `
+
+      <!--  各項指標說明 -->
+      <section class="card" style="margin-top:16px;">
+
+        <div class="grid" style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:12px; margin-top:12px;">
+          <!-- 1 工作績效 -->
+          <div class="card" style="margin:0;">
+            <div class="card-header">
+              <h3 style="margin:0;">1）工作績效（成果/結果）</h3>
+              <p class="muted" style="margin:6px 0 0;">衡量「做出什麼成果、達成多少目標」。</p>
+            </div>
+            <div class="card-body">
+              <ul class="muted" style="margin:0; padding-left:18px;">
+                <li>目標/任務達成度（如 KPI、交辦事項完成率）</li>
+                <li>工作品質（正確度、瑕疵率、客訴/退件）</li>
+                <li>交付時效（準時性、延誤狀況、優先序管理）</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 2 專業能力 -->
+          <div class="card" style="margin:0;">
+            <div class="card-header">
+              <h3 style="margin:0;">2）專業能力（知識/技能）</h3>
+              <p class="muted" style="margin:6px 0 0;">衡量「能不能把工作做對、做穩、做專業」。</p>
+            </div>
+            <div class="card-body">
+              <ul class="muted" style="margin:0; padding-left:18px;">
+                <li>專業知識熟悉度（流程/法規/產品/系統）</li>
+                <li>問題分析與解決能力（定位原因、提出方案、落地執行）</li>
+                <li>獨立作業程度（需要指導的頻率、可交付的完整度）</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 3 工作態度 -->
+          <div class="card" style="margin:0;">
+            <div class="card-header">
+              <h3 style="margin:0;">3）工作態度（責任/主動）</h3>
+              <p class="muted" style="margin:6px 0 0;">衡量「願不願意把事情做好、面對工作是否可靠」。</p>
+            </div>
+            <div class="card-body">
+              <ul class="muted" style="margin:0; padding-left:18px;">
+                <li>責任感（承諾做到、追蹤到底）</li>
+                <li>主動性（主動回報、提前預警、提出改善）</li>
+                <li>抗壓與穩定度（忙碌期表現、情緒與狀態管理）</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 4 溝通協作 -->
+          <div class="card" style="margin:0;">
+            <div class="card-header">
+              <h3 style="margin:0;">4）溝通協作（合作/對齊）</h3>
+              <p class="muted" style="margin:6px 0 0;">衡量「能不能和別人一起把事做成」。</p>
+            </div>
+            <div class="card-body">
+              <ul class="muted" style="margin:0; padding-left:18px;">
+                <li>溝通清晰度（資訊完整、重點明確、同頻對齊）</li>
+                <li>團隊合作（支援同事、跨部門配合、共同解題）</li>
+                <li>回饋與傾聽（接受建議、有效互動、減少誤會）</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 5 學習成長 -->
+          <div class="card" style="margin:0;">
+            <div class="card-header">
+              <h3 style="margin:0;">5）學習成長（改善/潛力）</h3>
+              <p class="muted" style="margin:6px 0 0;">衡量「能不能學更快、做更好、成長更穩」。</p>
+            </div>
+            <div class="card-body">
+              <ul class="muted" style="margin:0; padding-left:18px;">
+                <li>學習速度（新流程/新工具/新知識吸收）</li>
+                <li>改善能力（從錯誤中修正、持續提升）</li>
+                <li>成長企圖與投入（自我精進、主動學習、可培養性）</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 6 紀律規範 -->
+          <div class="card" style="margin:0;">
+            <div class="card-header">
+              <h3 style="margin:0;">6）紀律規範（出勤/制度）</h3>
+              <p class="muted" style="margin:6px 0 0;">衡量「是否遵守規範、降低風險」。</p>
+            </div>
+            <div class="card-body">
+              <ul class="muted" style="margin:0; padding-left:18px;">
+                <li>出勤與時間紀律（遲到早退、請假規範、交付準時）</li>
+                <li>制度遵循（流程、保密、資訊安全、法遵）</li>
+                <li>職場紀律（行為規範、基本禮儀、風險意識）</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+
+      </section>
+    `;
+  </script>
+</body>
+</html>

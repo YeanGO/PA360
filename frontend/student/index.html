@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <title>Student</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/auth_guard.js"></script>
+  <script src="/assets/layout.js"></script>
+  <script>requireAuth(["student"]);</script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    renderLayout({ title: "學生首頁" });
+    document.getElementById("page").innerHTML = `
+      <p class="muted">請完成自評與同儕評分。</p>
+      <div class="card" style="margin-top:12px;">
+        <div class="h2">快速入口</div>
+        <p><a class="btn primary" href="/student/self.html">前往自我評分</a></p>
+        <p><a class="btn" href="/student/peer.html">前往同儕評分</a></p>
+      </div>
+    `;
+  </script>
+</body>
+</html>
