@@ -228,7 +228,7 @@ def to_pokemon_com_slug(name: str) -> str:
     return s
 
 
-@router.get("/match", summary="Master：Top-K 相似寶可夢（用加權六指標）")
+@router.get("/match", summary="Master：趣味分析（用加權六指標）")
 def match(
     student_id: str,
     top_k: int = DEFAULT_TOP_K,
