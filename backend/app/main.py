@@ -9,7 +9,7 @@ from app.db import init_db
 
 from app.api.routes.master import router as master_router
 
-app = FastAPI(title="Pokemon Ability Evaluation API")
+app = FastAPI(title="360 度績效互評系統 API")
 
 app.include_router(auth_router)
 app.include_router(scores_router)
