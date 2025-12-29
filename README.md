@@ -1,4 +1,4 @@
-\# 360 度績效互評系統（360-Degree Performance Review System）
+\# 360 度績效互評系統（360-Degree Performance Appraisal）
 
 
 
@@ -31,7 +31,7 @@
 
 \- 建立可擴充之前後端分離架構
 
-\- 作為課堂專題或研究型系統原型
+\- 作為課堂專題或研究型系統
 
 
 ---
