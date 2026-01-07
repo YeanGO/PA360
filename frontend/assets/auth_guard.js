@@ -6,20 +6,20 @@ async function requireAuth(allowedRoles = []) {
   const role = localStorage.getItem("role");
   const userId = localStorage.getItem("user_id");
 
-  // 1) 沒 token：直接踢回登入頁
+  // 沒 token：直接踢回登入頁
   if (!token || !role || !userId) {
     window.location.href = "/login.html";
     return;
   }
 
-  // 2) 有允許角色限制：不符合也踢回登入頁
+  // 有允許角色限制：不符合也踢回登入頁
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
     localStorage.clear();
     window.location.href = "/login.html";
     return;
   }
 
-  // 3) 跟後端確認 token 是否有效（避免只改 localStorage 就闖關）
+  // 跟後端確認 token 是否有效（避免只改 localStorage 就闖關）
   try {
     const resp = await fetch("/api/auth/me", {
       headers: {
