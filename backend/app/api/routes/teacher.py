@@ -34,7 +34,7 @@ def class_completion(user=Depends(get_current_user)):
             "required_peer_given": required_peer_given,
             "required_peer_received": required_peer_received,
 
-            # ✅ Step 9 新增
+            #新增
             "teacher_scored": False,
             "required_teacher": 1,
         }
@@ -42,7 +42,7 @@ def class_completion(user=Depends(get_current_user)):
     }
 
     with db_session() as conn:
-        # 1) 自評：每人只要有一筆，就算完成（也可改成看 latest）
+        # 自評：每人只要有一筆，就算完成（也可改成看 latest）
         rows = conn.execute("""
             SELECT user_id, COUNT(*) AS cnt
             FROM scores_self
@@ -53,7 +53,7 @@ def class_completion(user=Depends(get_current_user)):
             if uid in result:
                 result[uid]["self_submitted"] = (r["cnt"] > 0)
 
-        # 2) 同儕送出：每人送出幾筆
+        # 同儕送出：每人送出幾筆
         rows = conn.execute("""
             SELECT rater_user_id AS user_id, COUNT(*) AS cnt
             FROM scores_peer
@@ -64,7 +64,7 @@ def class_completion(user=Depends(get_current_user)):
             if uid in result:
                 result[uid]["peer_given_count"] = int(r["cnt"])
 
-        # 3) 同儕收到：每人被評幾筆
+        # 同儕收到：每人被評幾筆
         rows = conn.execute("""
             SELECT target_user_id AS user_id, COUNT(*) AS cnt
             FROM scores_peer
@@ -75,7 +75,7 @@ def class_completion(user=Depends(get_current_user)):
             if uid in result:
                 result[uid]["peer_received_count"] = int(r["cnt"])
 
-        # 4) 老師評分：每位學生是否已被老師評過（target_user_id 只要有一筆就算完成）
+        # 老師評分：每位學生是否已被老師評過（target_user_id 只要有一筆就算完成）
         rows = conn.execute("""
             SELECT target_user_id AS user_id, COUNT(*) AS cnt
             FROM scores_teacher
@@ -105,10 +105,10 @@ def class_completion(user=Depends(get_current_user)):
         item["peer_given_done"] = (item["peer_given_count"] >= required_peer_given)
         item["peer_received_done"] = (item["peer_received_count"] >= required_peer_received)
 
-        # ✅ Step 9：老師評分是否完成（已在 teacher_scored）
+        # 老師評分是否完成（已在 teacher_scored）
         item["teacher_done"] = item["teacher_scored"]
         
-        # ✅ all_done：自評 + 同儕送出達標 + 老師評分完成
+        # all_done：自評 + 同儕送出達標 + 老師評分完成
         item["all_done"] = (item["self_submitted"] and item["peer_given_done"] and item["teacher_done"])
 
         detail.append(item)
