@@ -61,7 +61,7 @@ def submit_peer(payload: SubmitPeerRequest, user=Depends(get_current_user)):
     rater = user["user_id"]
     target = payload.target_user_id.strip()
 
-    # 2) 不能評自己
+    # 不能評自己
     if target == rater:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -79,7 +79,7 @@ def submit_peer(payload: SubmitPeerRequest, user=Depends(get_current_user)):
     if target == rater:
         raise HTTPException(status_code=400, detail={"ok": False, "error": "CANNOT_RATE_SELF"})
     
-    allowed = get_targets_for_rater(rater)  # ✅ 改用 peer_assignments.csv
+    allowed = get_targets_for_rater(rater)  # 改用 peer_assignments.csv
     if target not in allowed:
         raise HTTPException(status_code=403, detail={"ok": False, "error": "TARGET_NOT_ASSIGNED"})
 
@@ -115,7 +115,7 @@ def submit_teacher(payload: SubmitTeacherRequest, user=Depends(get_current_user)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail={"ok": False, "error": "FORBIDDEN"})
 
-    # ✅ Step 10：限制 target_user_id 必須在 roster 內
+    # 限制 target_user_id 必須在 roster 內
     try:
         students = students_set_from_users_csv()
     except FileNotFoundError:
