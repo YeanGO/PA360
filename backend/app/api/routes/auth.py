@@ -7,7 +7,7 @@ from app.schemas.auth import LoginRequest, LoginResponse, Role
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-#  Step 2 先用「假資料」：下一步再換成讀 CSV 或 DB
+#  先用「假資料」：下一步再換成讀 CSV 或 DB
 #_DEMO_USERS = {
 #    ("teacher", "T01"): {"password": "1234", "display_name": "Teacher-01"},
 #    ("student", "S01"): {"password": "1234", "display_name": "Student-01"},
@@ -53,7 +53,7 @@ def load_users_from_csv() -> dict[tuple[str, str], dict]:
 
     return users
 
-# ✅ 取代原本 _DEMO_USERS：啟動時載入一次（開發期最簡單）
+# 取代原本 _DEMO_USERS：啟動時載入一次（開發期最簡單）
 _USERS = load_users_from_csv()
 
 
